@@ -97,6 +97,71 @@ export const useAnalytics = (f) => {
         const knownUids = new Set(data.workers.map((w) => w.uid));
         const orphanChildren = children.filter((c) => !knownUids.has(c.workerUid));
 
+        // ---- Nutritional status transitions (SAM <-> MAM <-> Normal) ----
+        // Initial = samMamStatus at identification. Later assessments come from
+        // weekly discharge condition (SAM/MAM/NORMAL) and community follow-up
+        // nutritionCategory (free text). Latest dated assessment wins.
+        const normStatus = (v) => {
+            const s = String(v ?? "").trim().toUpperCase();
+            if (!s) return null;
+            if (s.startsWith("SAM")) return "SAM";
+            if (s.startsWith("MAM")) return "MAM";
+            if (s.startsWith("NORM") || s === "सामान्य" || s.startsWith("SAMANYA")) return "Normal";
+            return null;
+        };
+        const assessments = {}; // childId -> [{t, status, source, date}]
+        for (const w of weekly) {
+            const st = normStatus(w.dischargeConditionAtDischarge);
+            const m = parseAppDate(w.inClinicServiceDay || w.timestamp);
+            if (st && m) (assessments[w.childId] ??= []).push({ t: m.valueOf(), status: st, source: "NRC discharge", date: m.format("DD MMM YYYY") });
+        }
+        for (const e of community) {
+            const st = normStatus(e.nutritionCategory);
+            const m = parseAppDate(e.followUpDate || e.timestamp);
+            if (st && m) (assessments[e.childId] ??= []).push({ t: m.valueOf(), status: st, source: "Community follow-up", date: m.format("DD MMM YYYY") });
+        }
+        const STATUSES = ["SAM", "MAM", "Normal"];
+        const matrix = { SAM: { SAM: 0, MAM: 0, Normal: 0 }, MAM: { SAM: 0, MAM: 0, Normal: 0 } };
+        const transitionRows = []; // one per reassessed child
+        let notReassessed = 0, unknownInitial = 0;
+        for (const c of children) {
+            const initial = normStatus(c.samMamStatus);
+            if (!initial || initial === "Normal") { unknownInitial += 1; continue; }
+            const list = (assessments[c.id] ?? []).sort((a, b) => a.t - b.t);
+            if (!list.length) { notReassessed += 1; continue; }
+            const latest = list[list.length - 1];
+            matrix[initial][latest.status] += 1;
+            transitionRows.push({
+                id: c.id,
+                name: c.name,
+                workerName: c.workerName,
+                villageName: c.villageName,
+                caseType: isNrcCase(c) ? "NRC" : "Community",
+                initial,
+                latest: latest.status,
+                latestDate: latest.date,
+                latestSource: latest.source,
+                assessments: list.length,
+                change: initial === latest.status ? "unchanged" : STATUSES.indexOf(latest.status) > STATUSES.indexOf(initial) ? "improved" : "deteriorated",
+            });
+        }
+        const statusTransitions = {
+            matrix,
+            rows: transitionRows,
+            samToMam: matrix.SAM.MAM,
+            samToNormal: matrix.SAM.Normal,
+            samUnchanged: matrix.SAM.SAM,
+            mamToSam: matrix.MAM.SAM,
+            mamToNormal: matrix.MAM.Normal,
+            mamUnchanged: matrix.MAM.MAM,
+            improved: transitionRows.filter((r) => r.change === "improved").length,
+            deteriorated: transitionRows.filter((r) => r.change === "deteriorated").length,
+            unchanged: transitionRows.filter((r) => r.change === "unchanged").length,
+            reassessed: transitionRows.length,
+            notReassessed,
+            unknownInitial,
+        };
+
         return {
             children,
             nrcChildren,
@@ -111,6 +176,7 @@ export const useAnalytics = (f) => {
             referredOut,
             noFollowup,
             orphanChildren,
+            statusTransitions,
             weight: { gained, lost, same, measured },
             workerRows,
             enrollmentsByMonth: mergeMonthly({

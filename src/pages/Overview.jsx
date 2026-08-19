@@ -45,6 +45,7 @@ const Overview = () => {
                     { key: "summary", label: "Summary" },
                     { key: "demographics", label: "Demographics" },
                     { key: "outcomes", label: "Outcomes" },
+                    { key: "status", label: "SAM ↔ MAM changes" },
                     { key: "workers", label: "Entry makers" },
                 ]}
             />
@@ -169,6 +170,108 @@ const Overview = () => {
                     </div>
                 </>
             )}
+
+            {tab === "status" && (() => {
+                const s = a.statusTransitions;
+                const cell = (n, tone) => (
+                    <td style={{ textAlign: "center", fontWeight: 700, fontSize: "1.05rem", background: tone === "good" ? "#e6f6ee" : tone === "bad" ? "#fdecec" : "#f7fafc", color: tone === "good" ? "#1f7a52" : tone === "bad" ? "#b42323" : "#2d3748" }}>
+                        {n}
+                    </td>
+                );
+                const changeCols = [
+                    { key: "name", label: "Child", render: (r) => <b>{r.name || "-"}</b> },
+                    { key: "initial", label: "At identification" },
+                    { key: "latest", label: "Latest status" },
+                    {
+                        key: "change",
+                        label: "Change",
+                        render: (r) => (
+                            <span className={`pill ${r.change === "improved" ? "active" : r.change === "deteriorated" ? "inactive" : ""}`} style={r.change === "unchanged" ? { background: "#edf2f7", color: "#4a5568" } : undefined}>
+                                {r.change}
+                            </span>
+                        ),
+                    },
+                    { key: "latestDate", label: "Assessed on" },
+                    { key: "latestSource", label: "Source" },
+                    { key: "assessments", label: "# assessments" },
+                    { key: "caseType", label: "Case" },
+                    { key: "villageName", label: "Village" },
+                    { key: "workerName", label: "Entry maker" },
+                ];
+                const [changed, others] = [s.rows.filter((r) => r.change !== "unchanged"), s.rows.filter((r) => r.change === "unchanged")];
+                return (
+                    <>
+                        <div className="grid grid-4" style={{ marginBottom: 16 }}>
+                            <StatTile label="SAM → MAM (improved)" value={s.samToMam} hint={`${pct(s.samToMam, s.reassessed)} of reassessed`} />
+                            <StatTile label="MAM → SAM (deteriorated)" value={s.mamToSam} hint={`${pct(s.mamToSam, s.reassessed)} of reassessed`} />
+                            <StatTile label="Recovered to Normal" value={s.samToNormal + s.mamToNormal} hint={`${s.samToNormal} from SAM · ${s.mamToNormal} from MAM`} />
+                            <StatTile label="Not reassessed yet" value={s.notReassessed} hint="No discharge condition or community category recorded" />
+                        </div>
+                        <div className="grid grid-2">
+                            <Card title="Transition matrix" sub="Rows: status at SAM/MAM identification · Columns: latest assessed status">
+                                <div className="table-wrap">
+                                    <table className="data">
+                                        <thead>
+                                            <tr>
+                                                <th>Identified as ↓ / Now →</th>
+                                                <th style={{ textAlign: "center" }}>SAM</th>
+                                                <th style={{ textAlign: "center" }}>MAM</th>
+                                                <th style={{ textAlign: "center" }}>Normal</th>
+                                                <th style={{ textAlign: "center" }}>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><b>SAM</b></td>
+                                                {cell(s.matrix.SAM.SAM, "neutral")}
+                                                {cell(s.matrix.SAM.MAM, "good")}
+                                                {cell(s.matrix.SAM.Normal, "good")}
+                                                <td style={{ textAlign: "center" }}>{s.matrix.SAM.SAM + s.matrix.SAM.MAM + s.matrix.SAM.Normal}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><b>MAM</b></td>
+                                                {cell(s.matrix.MAM.SAM, "bad")}
+                                                {cell(s.matrix.MAM.MAM, "neutral")}
+                                                {cell(s.matrix.MAM.Normal, "good")}
+                                                <td style={{ textAlign: "center" }}>{s.matrix.MAM.SAM + s.matrix.MAM.MAM + s.matrix.MAM.Normal}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p className="muted" style={{ fontSize: "0.78rem", marginTop: 10, marginBottom: 0 }}>
+                                    Latest status comes from the most recent of: NRC discharge condition (weekly update) or community follow-up nutrition
+                                    category. {s.reassessed} of {a.children.length} children have at least one later assessment
+                                    {s.unknownInitial ? `; ${s.unknownInitial} have no SAM/MAM status at identification and are excluded` : ""}.
+                                </p>
+                            </Card>
+                            <Card title="Overall direction" sub="Among reassessed children">
+                                <SplitBar
+                                    data={[
+                                        { key: "Improved", count: s.improved },
+                                        { key: "Unchanged", count: s.unchanged },
+                                        { key: "Deteriorated", count: s.deteriorated },
+                                    ]}
+                                />
+                                <div className="grid grid-3" style={{ marginTop: 16, gap: 10 }}>
+                                    <StatTile label="Improved" value={s.improved} hint={pct(s.improved, s.reassessed)} />
+                                    <StatTile label="Unchanged" value={s.unchanged} hint={pct(s.unchanged, s.reassessed)} />
+                                    <StatTile label="Deteriorated" value={s.deteriorated} hint={pct(s.deteriorated, s.reassessed)} />
+                                </div>
+                            </Card>
+                        </div>
+                        <Card title="Children whose status changed" sub="Improved and deteriorated cases — deteriorated first" style={{ marginTop: 16 }}>
+                            <DataTable
+                                rows={[...changed].sort((x, y) => (x.change === "deteriorated" ? -1 : 1) - (y.change === "deteriorated" ? -1 : 1))}
+                                columns={changeCols}
+                                empty="No status changes recorded yet."
+                            />
+                        </Card>
+                        <Card title="Reassessed but unchanged" style={{ marginTop: 16 }}>
+                            <DataTable rows={others} columns={changeCols} empty="—" pageSize={25} />
+                        </Card>
+                    </>
+                );
+            })()}
 
             {tab === "workers" && (
                 <Card title="Entry maker activity" sub="Children and follow-ups within the current filters">
