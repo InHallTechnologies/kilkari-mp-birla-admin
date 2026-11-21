@@ -7,7 +7,7 @@ import { ToastContainer } from "react-toastify";
 import { system } from "./theme";
 import { AuthProvider } from "./context/AuthContext";
 import { DataProvider } from "./context/DataContext";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute, { AdminRoute } from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Overview from "./pages/Overview";
@@ -34,8 +34,8 @@ createRoot(document.getElementById("root")).render(
                             <Route index element={<Overview />} />
                             <Route path="children" element={<Children />} />
                             <Route path="followups" element={<Followups />} />
-                            <Route path="workers" element={<Workers />} />
-                            <Route path="reassign" element={<Reassign />} />
+                            <Route path="workers" element={<AdminRoute><Workers /></AdminRoute>} />
+                            <Route path="reassign" element={<AdminRoute><Reassign /></AdminRoute>} />
                         </Route>
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

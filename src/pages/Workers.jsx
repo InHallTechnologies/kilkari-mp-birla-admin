@@ -16,13 +16,17 @@ const friendlyAuthError = (code) => {
         case "auth/weak-password":
             return "Password must be at least 6 characters.";
         case "auth/operation-not-allowed":
-            return "Email/password sign-in is disabled in Firebase Auth settings.";
+            return "Email/password sign-in is disabled: Firebase console → Authentication → Sign-in method → enable Email/Password.";
+        case "auth/admin-restricted-operation":
+            return "Account creation (sign-up) is disabled: Firebase console → Authentication → Settings → User actions → enable “Create (sign-up)”.";
+        case "auth/network-request-failed":
+            return "Network error reaching Firebase. Check your connection and try again.";
         default:
-            return "Could not create the account.";
+            return `Could not create the account${code ? ` (${code})` : ""}.`;
     }
 };
 
-const EMPTY = { name: "", emailId: "", password: "", location: "" };
+const EMPTY = { name: "", emailId: "", password: "", location: "", access: "entry" };
 
 const Workers = () => {
     const { user } = useAuth();
@@ -51,7 +55,7 @@ const Workers = () => {
         setBusy(true);
         try {
             await createWorker({ ...form, adminUid: user.uid });
-            toast.success(`Entry maker "${form.name}" created`);
+            toast.success(`${form.access === "viewer" ? "Viewer" : "Entry maker"} account "${form.name}" created`);
             setForm(EMPTY);
             setOpen(false);
             refresh();
@@ -105,11 +109,11 @@ const Workers = () => {
         <>
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Entry makers</h1>
-                    <p className="page-subtitle">Field workers who use the Kilkari entry app. Only you (admin) can add them.</p>
+                    <h1 className="page-title">Users</h1>
+                    <p className="page-subtitle">Entry makers (field workers using the Kilkari entry app) and MP Birla viewer accounts (analytics only). Only you (admin) can add them.</p>
                 </div>
                 <Button bg="#1470a4" color="white" _hover={{ bg: "#105a85" }} onClick={() => setOpen(true)}>
-                    + Onboard entry maker
+                    + Add user
                 </Button>
             </div>
 
@@ -120,7 +124,7 @@ const Workers = () => {
                     columns={[
                         { key: "name", label: "Name", render: (r) => <b>{r.name || "-"}</b> },
                         { key: "emailId", label: "Email" },
-                        { key: "access", label: "Role", render: (r) => (r.access === "admin" ? <span className="pill admin">admin</span> : <span className="muted">entry</span>) },
+                        { key: "access", label: "Role", render: (r) => (r.access === "admin" ? <span className="pill admin">admin</span> : r.access === "viewer" ? <span className="pill viewer">viewer</span> : <span className="muted">entry</span>) },
                         { key: "status", label: "Status", render: (r) => <span className={`pill ${r.status === "inactive" ? "inactive" : "active"}`}>{r.status || "active"}</span> },
                         { key: "location", label: "Location" },
                         { key: "childCount", label: "Children" },
@@ -160,11 +164,18 @@ const Workers = () => {
                     <Dialog.Content p={6} borderRadius="xl" maxW="520px">
                         <Dialog.CloseTrigger />
                         <Dialog.Header mb={3}>
-                            <Dialog.Title fontSize="lg" fontWeight="bold">Onboard entry maker</Dialog.Title>
+                            <Dialog.Title fontSize="lg" fontWeight="bold">Add user</Dialog.Title>
                         </Dialog.Header>
                         <form onSubmit={submitCreate}>
                             <Dialog.Body>
                                 <div className="form-grid">
+                                    <div className="field full">
+                                        <label>Role</label>
+                                        <select className="select" style={{ width: "100%" }} value={form.access} onChange={(e) => setForm({ ...form, access: e.target.value })}>
+                                            <option value="entry">Entry maker — makes entries in the Kilkari field app</option>
+                                            <option value="viewer">Viewer (MP Birla) — sees all analytics, cannot make or change entries</option>
+                                        </select>
+                                    </div>
                                     <div className="field full">
                                         <label>Full name</label>
                                         <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -183,7 +194,9 @@ const Workers = () => {
                                     </div>
                                 </div>
                                 <p className="muted" style={{ fontSize: "0.8rem", marginTop: 10 }}>
-                                    Share the temporary password with the worker; they can change it via “Reset password”. You stay signed in as admin.
+                                    {form.access === "viewer"
+                                        ? "Viewers sign in to this console at the same address and see every analytics page, read-only. They cannot add, edit, delete or reassign anything."
+                                        : "Share the temporary password with the worker; they can change it via “Reset password”. You stay signed in as admin."}
                                 </p>
                             </Dialog.Body>
                             <Dialog.Footer mt={4} gap={2}>

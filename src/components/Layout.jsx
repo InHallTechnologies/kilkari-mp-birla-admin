@@ -8,12 +8,12 @@ const NAV = [
     { to: "/admin", label: "Overview", icon: MdDashboard, end: true },
     { to: "/admin/children", label: "Children", icon: MdChildCare },
     { to: "/admin/followups", label: "Follow-ups", icon: MdFactCheck },
-    { to: "/admin/workers", label: "Entry Makers", icon: MdPeople },
-    { to: "/admin/reassign", label: "Reassign", icon: MdSwapHoriz },
+    { to: "/admin/workers", label: "Entry Makers", icon: MdPeople, adminOnly: true },
+    { to: "/admin/reassign", label: "Reassign", icon: MdSwapHoriz, adminOnly: true },
 ];
 
 const Layout = () => {
-    const { user, profile, signOut } = useAuth();
+    const { user, profile, signOut, isAdmin } = useAuth();
     const { loading, refresh, loadedAt } = useData();
 
     return (
@@ -24,10 +24,10 @@ const Layout = () => {
                     <img src="/asra.png" alt="Asra" />
                     <div className="brand">
                         Kilkari
-                        <small>Admin console</small>
+                        <small>{isAdmin ? "Admin console" : "Programme insights"}</small>
                     </div>
                 </div>
-                {NAV.map((n) => (
+                {NAV.filter((n) => isAdmin || !n.adminOnly).map((n) => (
                     <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
                         <n.icon size={18} />
                         {n.label}
@@ -40,6 +40,7 @@ const Layout = () => {
                 {loadedAt && <div className="user">Loaded {loadedAt.toLocaleTimeString()}</div>}
                 <div className="user">
                     {profile?.name ? <b>{profile.name}</b> : null}
+                    {!isAdmin && <div><span className="pill viewer">MP Birla · Viewer</span></div>}
                     <div>{user?.email}</div>
                 </div>
                 <Button size="sm" variant="ghost" colorPalette="red" onClick={signOut} justifyContent="flex-start">

@@ -28,6 +28,7 @@ export const buildMockTrees = () => {
     const users = {
         admin1: { uid: "admin1", name: "Programme Admin", emailId: "admin@kilkari.org", access: "admin", status: "active", addedOn: "01-01-2026 9:00 am" },
     };
+    users.v1 = { uid: "v1", name: "Birla Observer", emailId: "observer@mpbirla.example", access: "viewer", status: "active", location: "Mumbai HO", addedOn: "10-01-2026 11:00 am" };
     for (const [uid, name, emailId, location] of WORKERS)
         users[uid] = { uid, name, emailId, access: "entry", status: uid === "w4" ? "inactive" : "active", location, addedOn: "05-01-2026 10:00 am" };
 

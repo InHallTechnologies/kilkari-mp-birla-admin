@@ -6,8 +6,9 @@ Vite build and deployment. Nothing here requires a change to the field-worker ap
 
 | Capability | Where |
 |---|---|
-| Single admin login (gated on `USERS_ARCHIVE/{uid}/access === "admin"`) | `src/context/AuthContext.jsx`, `src/components/ProtectedRoute.jsx` |
-| Onboard entry makers (creates Firebase Auth user + `USERS_ARCHIVE` profile) | **Entry Makers** page → `src/backend/adminOps.js#createWorker` |
+| Admin login (`USERS_ARCHIVE/{uid}/access === "admin"`) and read-only viewer login for MP Birla (`access === "viewer"`) | `src/context/AuthContext.jsx`, `src/components/ProtectedRoute.jsx` |
+| Viewers see all analytics (Overview, Children, Follow-ups) with a branded dashboard; every add/edit/delete/reassign control and admin page is hidden and route-guarded | `AdminRoute`, `isAdmin` gates in pages |
+| Onboard entry makers **and MP Birla viewer accounts** (creates Firebase Auth user + `USERS_ARCHIVE` profile with the chosen role) | **Users** page → `src/backend/adminOps.js#createWorker` |
 | Edit name/location, mark active/inactive, send password-reset email | **Entry Makers** page |
 | Analytics with filters + tabs (summary, demographics, outcomes, per-worker) | **Overview** page → `src/hooks/useAnalytics.js` |
 | Browse every child / follow-up across all workers, drill-down, CSV export | **Children**, **Follow-ups** pages |
@@ -34,7 +35,15 @@ yarn dev                  # http://localhost:5174
    ```
    Alternatively, put the admin's email in `VITE_ADMIN_EMAILS` in `.env` to bootstrap, then set `access: "admin"` and remove the env var.
 
-Only accounts with `access === "admin"` get past the login screen. Entry makers who try to log in here see a "not an admin" page.
+Only accounts with `access === "admin"` or `access === "viewer"` get past the login screen; viewers get the read-only
+insights dashboard. Entry makers who try to log in here see a "no console access" page.
+
+### Viewer (MP Birla) accounts
+
+Created by the admin from the **Users** page (role picker → "Viewer"). Viewers sign in at the same address with their own
+credentials and see Overview, Children and Follow-ups — all analytics, filters, tabs and CSV exports — but no
+add/edit/delete/reassign controls, no Trash, and no Users/Reassign pages (route-guarded, plus DB rules give them read-only
+access). The rules below grant viewers read on the data trees; writes stay admin-only.
 
 ### 2. Firebase Realtime Database rules
 
@@ -45,19 +54,19 @@ Rules along these lines (adapt to whatever you have now):
 {
   "rules": {
     "USERS_ARCHIVE": {
-      ".read":  "auth != null && root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin'",
+      ".read":  "auth != null && (root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin' || root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'viewer')",
       "$uid": {
         ".read":  "auth != null && ($uid === auth.uid || root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin')",
         ".write": "auth != null && root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin'"
       }
     },
-    "Enrollments":        { ".read": "auth != null && root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin'",
+    "Enrollments":        { ".read": "auth != null && (root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin' || root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'viewer')",
                             "$uid": { ".read": "auth != null && $uid === auth.uid", ".write": "auth != null && ($uid === auth.uid || root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin')" } },
-    "Updates":            { ".read": "auth != null && root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin'",
+    "Updates":            { ".read": "auth != null && (root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin' || root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'viewer')",
                             "$uid": { ".read": "auth != null && $uid === auth.uid", ".write": "auth != null && ($uid === auth.uid || root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin')" } },
-    "NrcFollowups":       { ".read": "auth != null && root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin'",
+    "NrcFollowups":       { ".read": "auth != null && (root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin' || root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'viewer')",
                             "$uid": { ".read": "auth != null && $uid === auth.uid", ".write": "auth != null && ($uid === auth.uid || root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin')" } },
-    "CommunityFollowups": { ".read": "auth != null && root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin'",
+    "CommunityFollowups": { ".read": "auth != null && (root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin' || root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'viewer')",
                             "$uid": { ".read": "auth != null && $uid === auth.uid", ".write": "auth != null && ($uid === auth.uid || root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin')" } },
     "ADMIN_TRASH":        { ".read": "auth != null && root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin'",
                             ".write": "auth != null && root.child('USERS_ARCHIVE').child(auth.uid).child('access').val() === 'admin'" },
@@ -93,7 +102,7 @@ The child key is preserved, so `uid`/`childUid` references stay valid. Follow-up
 
 ## Mock / demo mode
 
-`VITE_MOCK=1 yarn dev` skips Firebase entirely: fake admin session + generated data in the exact DB shape, all writes
+`VITE_MOCK=1 yarn dev` skips Firebase entirely: fake admin session + generated data (add `VITE_MOCK_ROLE=viewer` to preview the MP Birla viewer experience) in the exact DB shape, all writes
 disabled. Only active in `vite dev` (never in a production build).
 
 ## Scripts

@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Button, Spinner } from "@chakra-ui/react";
 import moment from "moment";
+import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { useFilters } from "../hooks/useFilters";
 import { useAnalytics } from "../hooks/useAnalytics";
 import FilterBar from "../components/FilterBar";
 import ChildDetailDialog from "../components/ChildDetailDialog";
-import { Card, DataTable, StatTile, Tabs } from "../components/ui";
+import { Card, DataTable, LoadError, StatTile, Tabs } from "../components/ui";
 import { BreakdownBars, ColumnChart } from "../components/charts";
 import { downloadText, fmtDate, toCsv } from "../utils/data";
 import { useDeleter } from "../hooks/useDeleter";
@@ -34,7 +35,8 @@ const yesRate = (rows, key) => {
 };
 
 const Followups = () => {
-    const { loading, childById } = useData();
+    const { isAdmin } = useAuth();
+    const { loading, error: dataError, childById } = useData();
     const f = useFilters();
     const a = useAnalytics(f);
     const [tab, setTab] = useState("weekly");
@@ -54,9 +56,11 @@ const Followups = () => {
                 <Button size="xs" variant="outline" onClick={(e) => { e.stopPropagation(); setSelected(childById[r.childId] ?? null); }}>
                     Child
                 </Button>
-                <Button size="xs" variant="outline" colorPalette="red" onClick={(e) => { e.stopPropagation(); requestDeleteFollowup(r); }}>
-                    Delete
-                </Button>
+                {isAdmin && (
+                    <Button size="xs" variant="outline" colorPalette="red" onClick={(e) => { e.stopPropagation(); requestDeleteFollowup(r); }}>
+                        Delete
+                    </Button>
+                )}
             </div>
         ),
     };
@@ -124,6 +128,7 @@ const Followups = () => {
                     Export CSV ({t.rows.length})
                 </Button>
             </div>
+            <LoadError error={dataError} />
             <FilterBar f={f} />
             <Tabs
                 active={tab}

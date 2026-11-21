@@ -2,6 +2,16 @@ import { useState } from "react";
 import { Button } from "@chakra-ui/react";
 import { displayValue } from "../utils/data";
 
+export const LoadError = ({ error, children }) =>
+    error ? (
+        <div className="card" style={{ borderColor: "#f5c2c2", background: "#fdecec", color: "#b42323", marginBottom: 16 }}>
+            <b>Could not load data from Firebase:</b> {String(error)}
+            <div style={{ fontSize: "0.82rem", marginTop: 6 }}>
+                {children ?? "Check your connection and that the database rules allow this account to read the root paths (USERS_ARCHIVE, Enrollments, Updates, NrcFollowups, CommunityFollowups)."}
+            </div>
+        </div>
+    ) : null;
+
 export const StatTile = ({ label, value, hint }) => (
     <div className="stat-tile">
         <div className="stat-label">{label}</div>

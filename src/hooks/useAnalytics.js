@@ -66,7 +66,7 @@ export const useAnalytics = (f) => {
 
         // Per-worker rollup
         const workerRows = data.workers
-            .filter((w) => w.access !== "admin")
+            .filter((w) => w.access !== "admin" && w.access !== "viewer")
             .map((w) => {
                 const kids = children.filter((c) => c.workerUid === w.uid);
                 const kidIds = new Set(kids.map((k) => k.id));

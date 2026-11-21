@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Spinner } from "@chakra-ui/react";
+import { MdVerified } from "react-icons/md";
+import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { useFilters } from "../hooks/useFilters";
 import { useAnalytics } from "../hooks/useAnalytics";
@@ -10,7 +12,8 @@ import { BreakdownBars, ColumnChart, SplitBar, TrendChart } from "../components/
 const pct = (n, d) => (d ? `${Math.round((n / d) * 100)}%` : "-");
 
 const Overview = () => {
-    const { loading, error } = useData();
+    const { isViewer, profile } = useAuth();
+    const { loading, error, loadedAt } = useData();
     const f = useFilters();
     const a = useAnalytics(f);
     const [tab, setTab] = useState("summary");
@@ -22,12 +25,31 @@ const Overview = () => {
 
     return (
         <>
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Overview</h1>
-                    <p className="page-subtitle">Programme-wide analytics across all entry makers. Filters apply to every tab.</p>
+            {isViewer ? (
+                <div className="viewer-hero">
+                    <div>
+                        <span className="hero-badge">
+                            <MdVerified /> MP Birla · Programme Insights
+                        </span>
+                        <h1>Kilkari Dashboard</h1>
+                        <p className="sub">
+                            Welcome{profile?.name ? `, ${profile.name}` : ""} — live analytics from the malnutrition initiative in Satna, Madhya Pradesh.
+                            {loadedAt ? ` Data as of ${loadedAt.toLocaleString()}.` : ""}
+                        </p>
+                    </div>
+                    <div className="hero-logos">
+                        <img src="/logo.jpg" alt="MP Birla" />
+                        <img src="/asra.png" alt="Asra" />
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="page-header">
+                    <div>
+                        <h1 className="page-title">Overview</h1>
+                        <p className="page-subtitle">Programme-wide analytics across all entry makers. Filters apply to every tab.</p>
+                    </div>
+                </div>
+            )}
 
             <FilterBar f={f} />
 

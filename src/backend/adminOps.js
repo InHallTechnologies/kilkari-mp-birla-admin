@@ -10,12 +10,13 @@ const guardMock = () => {
 const nowStamp = () => moment().format("DD-MM-YYYY h:mm a");
 
 /**
- * Create a field-worker (entry maker) account.
+ * Create a field-worker (entry maker) or viewer (analytics-only, e.g. MP Birla) account.
  * Writes USERS_ARCHIVE/{uid} in the exact shape the field app's `user` entity expects,
  * so the field app can read `.name` for enrolledByName / entryByName.
  */
-export const createWorker = async ({ name, emailId, password, location = "", adminUid }) => {
+export const createWorker = async ({ name, emailId, password, location = "", adminUid, access = "entry" }) => {
     guardMock();
+    if (!["entry", "viewer"].includes(access)) throw new Error("access must be 'entry' or 'viewer'");
     const secondaryAuth = getSecondaryAuth();
     const cred = await createUserWithEmailAndPassword(secondaryAuth, emailId.trim(), password);
     const uid = cred.user.uid;
@@ -24,7 +25,7 @@ export const createWorker = async ({ name, emailId, password, location = "", adm
             uid,
             name: name.trim(),
             emailId: emailId.trim(),
-            access: "entry",
+            access,
             addedOn: nowStamp(),
             addedBy: adminUid ?? "",
             location,

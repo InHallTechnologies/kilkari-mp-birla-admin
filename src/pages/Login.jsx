@@ -93,7 +93,7 @@ const Login = () => {
                 <form className="login-card" onSubmit={submit} noValidate>
                     <div className="login-card-head">
                         <h2>Sign in</h2>
-                        <p>Use the admin account. Field workers should use the Kilkari entry app instead.</p>
+                        <p>Sign in with your admin or MP Birla viewer account. Field workers should use the Kilkari entry app instead.</p>
                     </div>
 
                     {error && (

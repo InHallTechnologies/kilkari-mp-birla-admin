@@ -27,7 +27,7 @@ const FilterBar = ({ f, show = {} }) => {
     const workerOpts = useMemo(
         () =>
             workers
-                .filter((w) => w.access !== "admin")
+                .filter((w) => w.access !== "admin" && w.access !== "viewer")
                 .map((w) => ({ value: w.uid, label: w.name || w.emailId || w.uid }))
                 .sort((a, b) => a.label.localeCompare(b.label)),
         [workers]

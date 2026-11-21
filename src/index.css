@@ -72,6 +72,7 @@ table.data tr.clickable { cursor: pointer; }
 .pill.active { background: #e6f6ee; color: #1f7a52; }
 .pill.inactive { background: #fdecec; color: #b42323; }
 .pill.admin { background: #fff4e0; color: #9a5b00; }
+.pill.viewer { background: #ece9fb; color: #4c3fb5; }
 .muted { color: #718096; }
 .empty { padding: 30px; text-align: center; color: #718096; }
 
@@ -82,6 +83,26 @@ table.data tr.clickable { cursor: pointer; }
 .viz-tip .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: #4a5568; margin-top: 8px; }
 .legend .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+
+/* ---- Viewer hero ---- */
+.viewer-hero {
+  position: relative; overflow: hidden; border-radius: 16px; padding: 26px 30px; margin-bottom: 20px; color: #fff;
+  display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+  background:
+    radial-gradient(900px 400px at -10% -40%, rgba(47,165,113,0.40), transparent 60%),
+    radial-gradient(700px 400px at 110% 140%, rgba(20,112,164,0.50), transparent 60%),
+    linear-gradient(135deg, #0b2a33 0%, #0f4a52 70%, #0b3140 100%);
+}
+.viewer-hero h1 { margin: 6px 0 0; font-size: 1.7rem; }
+.viewer-hero .sub { color: #b7dcd7; font-size: 0.9rem; margin: 8px 0 0; max-width: 640px; line-height: 1.5; }
+.viewer-hero .hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.20);
+  color: #cdeee6; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 999px;
+}
+.viewer-hero .hero-logos { display: flex; align-items: center; }
+.viewer-hero .hero-logos img { height: 42px; border-radius: 8px; background: #fff; padding: 3px; margin-left: 10px; }
 
 /* ---- Login ---- */
 .login { min-height: 100vh; display: grid; grid-template-columns: minmax(380px, 46%) 1fr; }

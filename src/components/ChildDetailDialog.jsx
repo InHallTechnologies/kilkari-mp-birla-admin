@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Dialog } from "@chakra-ui/react";
+import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { displayValue, fmtDate, isNrcCase } from "../utils/data";
 import { CasePill, DataTable, Tabs } from "./ui";
@@ -36,6 +37,7 @@ const COMM_COLS = [
 ];
 
 const ChildDetailDialog = ({ child, onClose, actions, onDeleteChild }) => {
+    const { isAdmin } = useAuth();
     const { weekly, nrcFollowups, communityFollowups } = useData();
     const [tab, setTab] = useState("enroll");
     const { requestDeleteFollowup, dialog: deleteDialog } = useDeleter();
@@ -98,9 +100,9 @@ const ChildDetailDialog = ({ child, onClose, actions, onDeleteChild }) => {
                                 ))}
                             </div>
                         )}
-                        {tab === "weekly" && <DataTable rows={w} columns={[...WEEKLY_COLS, delCol]} empty="No weekly updates." />}
-                        {tab === "nrc" && <DataTable rows={n} columns={[...NRC_COLS, delCol]} empty="No NRC follow-ups." />}
-                        {tab === "community" && <DataTable rows={c} columns={[...COMM_COLS, delCol]} empty="No community follow-ups." />}
+                        {tab === "weekly" && <DataTable rows={w} columns={isAdmin ? [...WEEKLY_COLS, delCol] : WEEKLY_COLS} empty="No weekly updates." />}
+                        {tab === "nrc" && <DataTable rows={n} columns={isAdmin ? [...NRC_COLS, delCol] : NRC_COLS} empty="No NRC follow-ups." />}
+                        {tab === "community" && <DataTable rows={c} columns={isAdmin ? [...COMM_COLS, delCol] : COMM_COLS} empty="No community follow-ups." />}
                     </Dialog.Body>
                     <Dialog.Footer mt={4}>
                         <Button variant="outline" onClick={onClose}>

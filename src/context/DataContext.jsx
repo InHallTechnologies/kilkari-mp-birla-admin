@@ -27,7 +27,7 @@ const flattenFollowups = (tree, kind) => {
 };
 
 export const DataProvider = ({ children }) => {
-    const { isAdmin } = useAuth();
+    const { isAdmin, isViewer } = useAuth();
     const [raw, setRaw] = useState({ users: {}, enrollments: {}, updates: {}, nrc: {}, community: {} });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -61,10 +61,10 @@ export const DataProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        // Initial load once the admin is verified. `refresh` is stable (useCallback).
+        // Initial load once an admin or viewer is verified. `refresh` is stable (useCallback).
         // eslint-disable-next-line react-hooks/set-state-in-effect -- kicks off an async fetch; state is set in its callbacks
-        if (isAdmin) refresh();
-    }, [isAdmin, refresh]);
+        if (isAdmin || isViewer) refresh();
+    }, [isAdmin, isViewer, refresh]);
 
     const value = useMemo(() => {
         const workers = Object.keys(raw.users).map((uid) => ({ uid, ...raw.users[uid] }));

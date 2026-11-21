@@ -3,6 +3,7 @@ import { Button, Spinner } from "@chakra-ui/react";
 import moment from "moment";
 import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
+import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { useFilters } from "../hooks/useFilters";
 import { useAnalytics } from "../hooks/useAnalytics";
@@ -11,13 +12,14 @@ import { fetchTrash, purgeTrash, restoreFromTrash } from "../backend/adminOps";
 import FilterBar from "../components/FilterBar";
 import ChildDetailDialog from "../components/ChildDetailDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { Card, CasePill, DataTable, Tabs } from "../components/ui";
+import { Card, CasePill, DataTable, LoadError, Tabs } from "../components/ui";
 import { downloadText, fmtDate, isNrcCase, toCsv } from "../utils/data";
 
 const KIND_LABEL = { weekly: "Weekly update", nrc: "NRC follow-up", community: "Community follow-up" };
 
 const Children = () => {
-    const { loading, followupCounts, workerName, refresh } = useData();
+    const { isAdmin } = useAuth();
+    const { loading, error: dataError, followupCounts, workerName, refresh } = useData();
     const navigate = useNavigate();
     const f = useFilters();
     const a = useAnalytics(f);
@@ -66,18 +68,22 @@ const Children = () => {
     const columns = [
         {
             key: "_actions",
-            label: "Actions",
+            label: isAdmin ? "Actions" : "",
             render: (r) => (
                 <div style={{ display: "flex", gap: 6 }}>
                     <Button size="xs" variant="outline" onClick={(e) => { e.stopPropagation(); setSelected(r); }}>
                         View
                     </Button>
-                    <Button size="xs" variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/admin/reassign?child=${r.id}`); }}>
-                        Reassign
-                    </Button>
-                    <Button size="xs" variant="outline" colorPalette="red" onClick={(e) => { e.stopPropagation(); requestDeleteChild(r); }}>
-                        Delete
-                    </Button>
+                    {isAdmin && (
+                        <>
+                            <Button size="xs" variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/admin/reassign?child=${r.id}`); }}>
+                                Reassign
+                            </Button>
+                            <Button size="xs" variant="outline" colorPalette="red" onClick={(e) => { e.stopPropagation(); requestDeleteChild(r); }}>
+                                Delete
+                            </Button>
+                        </>
+                    )}
                 </div>
             ),
         },
@@ -158,6 +164,7 @@ const Children = () => {
                     </Button>
                 )}
             </div>
+            <LoadError error={dataError} />
             {tab !== "trash" && <FilterBar f={f} />}
             <Tabs
                 active={tab}
@@ -168,7 +175,7 @@ const Children = () => {
                     { key: "community", label: "Community", count: a.communityChildren.length },
                     { key: "discharged", label: "Discharged", count: rowsByTab.discharged.length },
                     { key: "nofollowup", label: "No follow-up yet", count: a.noFollowup.length },
-                    { key: "trash", label: "Trash" },
+                    ...(isAdmin ? [{ key: "trash", label: "Trash" }] : []),
                 ]}
             />
             <Card>
@@ -191,11 +198,13 @@ const Children = () => {
             <ChildDetailDialog
                 child={selected}
                 onClose={() => setSelected(null)}
-                onDeleteChild={requestDeleteChild}
+                onDeleteChild={isAdmin ? requestDeleteChild : undefined}
                 actions={
-                    <Button size="sm" variant="outline" onClick={() => navigate(`/admin/reassign?child=${selected?.id}`)}>
-                        Reassign…
-                    </Button>
+                    isAdmin ? (
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/admin/reassign?child=${selected?.id}`)}>
+                            Reassign…
+                        </Button>
+                    ) : null
                 }
             />
             {deleteDialog}

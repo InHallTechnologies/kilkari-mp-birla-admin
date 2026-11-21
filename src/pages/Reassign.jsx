@@ -6,12 +6,12 @@ import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { fetchReassignLog, reassignChild } from "../backend/adminOps";
 import ChildDetailDialog from "../components/ChildDetailDialog";
-import { Card, CasePill, DataTable } from "../components/ui";
+import { Card, CasePill, DataTable, LoadError } from "../components/ui";
 import { fmtDate, isNrcCase } from "../utils/data";
 
 const Reassign = () => {
     const { user } = useAuth();
-    const { loading, children, workers, workerName, followupCounts, refresh } = useData();
+    const { loading, error: dataError, children, workers, workerName, followupCounts, refresh } = useData();
     const [params, setParams] = useSearchParams();
     const [query, setQuery] = useState("");
     const [childId, setChildId] = useState(params.get("child") ?? "");
@@ -49,7 +49,7 @@ const Reassign = () => {
     }, [children, query]);
 
     const targets = workers
-        .filter((w) => w.access !== "admin" && w.uid !== child?.workerUid)
+        .filter((w) => w.access !== "admin" && w.access !== "viewer" && w.uid !== child?.workerUid)
         .sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
 
     const counts = child ? followupCounts[child.id] ?? { weekly: 0, nrc: 0, community: 0, total: 0 } : null;
@@ -103,6 +103,7 @@ const Reassign = () => {
                 </div>
             </div>
 
+            <LoadError error={dataError} />
             <div className="grid grid-2">
                 <Card title="1. Pick the child">
                     <Input placeholder="Search by name, SAM no., parent or village…" value={query} onChange={(e) => setQuery(e.target.value)} />
